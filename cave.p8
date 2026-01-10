@@ -5,7 +5,7 @@ __lua__
 pl = {
 	x = 0,
 	y = 0,
-	spe = 1,
+	spe = 10,
 }
 
 --base functions
@@ -25,7 +25,7 @@ end
 function _draw()
 	cls(0)
 	camera(pl.x-64,pl.y-64)
-	map(64,64,0,0)
+	map(0,0,-64,-64)
 	
 	spr(64,pl.x,pl.y,2,2)
 end
