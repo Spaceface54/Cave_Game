@@ -38,8 +38,13 @@ function _update()
 	if btnp(❎) and btnp(🅾️) then drop_node(pl.x, pl.y) end
 	
 	
-	if is_colliding(pl.x,pl.y) then
-		pl.x = last_x
+	if map_colliding(pl.x,pl.y) then
+		--[[ ideal: have some sort of 
+							feedback that the player
+							moving back to their 
+							last position
+			--]]
+		pl.x = last_x 
 		pl.y = last_y
 	end
 	
@@ -53,13 +58,14 @@ function _draw()
 	map()
 	spr(64,pl.x,pl.y,2,2)
 	-- collision shape debugging--
-	rect(pl.x+2, pl.y+4, pl.x + 15, pl.y+9, 8)
+	rect(pl.x+4, pl.y+4, pl.x + 10, pl.y+6, 8)
 	
 	-- raycast debug
 	flash(pl.x, pl.y, 0, 50)
 	
 	--draw nodes--
 	foreach(nodes, node.draw)
+	
 end
 
 
@@ -74,11 +80,15 @@ function drop_node(x,y)
 	end
 end
 
-function is_colliding(obj_x, obj_y)
-	local x1 = (obj_x+2)\8
-	local y1 = (obj_y+4)\8
-	local x2 = (obj_x+15)\8
-	local y2 = (obj_y+9)\8
+function map_colliding(obj_x, obj_y)
+	--[[ currently only able to do a 
+						rectangle, but would like 
+						to make an ellipse or smth					
+	]] 
+	local x1 = (obj_x+4)\8 --prev:+2
+	local y1 = (obj_y+4)\8 --prev: +4
+	local x2 = (obj_x+10)\8 --prev:+12
+	local y2 = (obj_y+6)\8  --prev: +6
 	
 	local a = fget(mget(x1, y1),0)
 	local b = fget(mget(x1, y2),0)
