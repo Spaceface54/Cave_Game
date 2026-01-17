@@ -19,9 +19,10 @@ node = {
 }
 
 nodes = {}
+
 silt_timer = 0
 silt_max = 80
-silt_sz_up = 5
+silt_sz_up = 3
 
 --base functions
 
@@ -42,7 +43,7 @@ function _update()
 	
 	
 	
-	if map_colliding(pl.pos.x,pl.pos.y) then
+	if pl_map_collision() then
 		--[[ ideal: have some sort of 
 							feedback that the player
 							moving back to their 
@@ -50,7 +51,7 @@ function _update()
 			--]]
 		pl.pos.x = last_x 
 		pl.pos.y = last_y
-		start_silt_time()
+		--start_silt_time()
 	end
 	
 	if silt_timer > 0 then
@@ -72,8 +73,8 @@ function _draw()
 	print(pl.pos.x..", "..pl.pos.y,pl.pos.x,pl.pos.y,10)
 	--spr_r(0,4,pl.x,pl.y,2,2,false,false,8,8,0.1,0)
 	-- collision shape debugging--
-	rect(pl.pos.x+4, pl.pos.y+4, pl.pos.x + 10, pl.pos.y+6, 8)
-	
+	--rect(pl.pos.x+4, pl.pos.y+4, pl.pos.x + 10, pl.pos.y+6, 8)
+	circ(pl.pos.x+8, pl.pos.y+7, 2.5, 8)
 	-- raycast debug
 	flash(pl.pos.x, pl.pos.y, 0, 50, 3)
 	
@@ -83,7 +84,8 @@ function _draw()
 	
 --	while costatus(c) =="suspended" and costatus(c)~="dead" do 
 	if silt_timer > 0 then
- 	fillp(0b0011010101101000.100)
+ --	fillp(0b0011010101101000.100)
+		fillp(☉)
 		circfill(pl.pos.x, pl.pos.y, silt_sz_up, 1)
 		fillp(0)
 	end 
@@ -187,10 +189,10 @@ function map_colliding(obj_x, obj_y)
 						rectangle, but would like 
 						to make an ellipse or smth					
 	]] 
-	local x1 = (obj_x+4)\8 --prev:+2
-	local y1 = (obj_y+4)\8 --prev: +4
-	local x2 = (obj_x+10)\8 --prev:+12
-	local y2 = (obj_y+6)\8  --prev: +6
+	local x1 = flr_div(obj_x+4) --prev:+2
+	local y1 = flr_div(obj_y+4) --prev: +4
+	local x2 = flr_div(obj_x+10) --prev:+12
+	local y2 = flr_div(obj_y+6)  --prev: +6
 	
 	local a = fget(mget(x1, y1),0)
 	local b = fget(mget(x1, y2),0)
@@ -202,6 +204,106 @@ function map_colliding(obj_x, obj_y)
 	else 
 		return false
 	end
+end
+
+function pl_map_collision()
+	
+	for i=0,1,0.01 do
+		local x = (pl.pos.x+8) + cos(t()) * 2.5
+		local y = (pl.pos.y+7) + sin(t()) * 2.5	
+		
+		local id = mget(flr_div(x), flr_div(y))
+		local x1 = 0
+		local x2 = 0
+		local y1 = 0
+		local y2 = 0
+		local height = 0
+		local t = 0
+		--[[2: top left; 3: top-right;
+						4: btm-left; 5: btm-right
+		--]]
+		if fget(id, 0) then --solid
+			
+			if fget(id,1) then --corner
+			
+				if fget(id, 2) then 
+					x1 = flr_div(x)*8
+					x2 = x1+8
+					
+					y1 = flr_div(y)*8-8
+					y2 = y1+8
+					
+					t=(x2-x)/8
+					
+					height=lerp(y2,y1,t)
+					
+					if(y<height)then
+						return true
+					end
+					--return false
+				elseif fget(id, 3) then
+					x1 = flr_div(x)*8
+					x2 = x1+8
+					
+					y1 = flr_div(y)*8+8
+					y2 = y1-8
+					
+					t=(x2-x)/8
+					
+					height=lerp(y2,y1,t)
+					
+					if(y<height)then
+						return true
+					end
+					--return false
+				elseif fget(id, 4) then
+					x1 = flr_div(x)*8
+					x2 = x1+8
+					
+					y1 = flr_div(y)*8+8
+					y2 = y1-8
+					
+					t=(x2-x)/8
+					
+					height=lerp(y2,y1,t)
+					
+					if(y>height)then
+						return true
+					end
+					--return false
+				else
+					x1 = flr_div(x)*8
+					x2 = x1+8
+					
+					y1 = flr_div(y)*8-8
+					y2 = y1+8
+					
+					t=(x2-x)/8
+					
+					height=lerp(y2,y1,t)
+					
+					if(y>height)then
+						return true
+					end
+				end
+			
+			end
+			
+			return true
+		
+		end
+		
+	end
+	return false
+end
+
+--credit: sophie houlden
+function flr_div(v)
+	return flr(v/8)	
+end
+
+function lerp(a,b,t)
+	return (1-t)*a+t*b
 end
 
 function flash(sx,sy,a,l,pen)
@@ -283,7 +385,7 @@ end
 function start_silt_time()
 	if silt_timer == 0 then
 		silt_timer = silt_max
-		silt_sz_up = 5
+		silt_sz_up = 3
 	end
 end
 
@@ -392,7 +494,7 @@ __gfx__
 00000000000000000202000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000202000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __gff__
-0001010101010000000000000000000000010101010100000000000000000000000100010001000000000000000000000001010101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00070101010b0000000000000000000000010101010100000000000000000000000100010001000000000000000000000013010101230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 2315000000001123132323233333321323231423233332342314232323132333331223142314231312332323132313232333232323231223232323233334323313232323122323132323231223232323333233343313232313232323132323122323231323232323333314232313232323122323232323232313232333332323
