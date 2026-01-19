@@ -30,6 +30,8 @@ function _init()
 	pl.init(pl)
 	pl.pos.x = 20
 	test = vec2:new(2,2)
+	
+	--b=c[0]
 	--decomp(-5,-5,132,132,ti,0)
 end
 
@@ -75,7 +77,7 @@ function _draw()
 ----	map(0,0,-64,-64)
 	map()
 	pl:draw()
-	print(pl.pos.x..", "..pl.pos.y,pl.pos.x,pl.pos.y,10)
+	--print(pl.pos.x..", "..pl.pos.y,pl.pos.x,pl.pos.y,10)
 	--spr_r(0,4,pl.x,pl.y,2,2,false,false,8,8,0.1,0)
 	-- collision shape debugging--
 	--rect(pl.pos.x+4, pl.pos.y+4, pl.pos.x + 10, pl.pos.y+6, 8)
@@ -100,7 +102,7 @@ function _draw()
 		fillp(0)
 	end 
 	move_ui()
-	print(stat(1)..", "..calls,pl.pos.x-10,pl.pos.y-10,10)
+	--print(stat(1)..", "..calls,pl.pos.x-10,pl.pos.y-10,10)
 end
 -->8
 --player & physics
@@ -198,6 +200,12 @@ vec2={
 			__index=self,
 			__mul=function(v1,c)
 				return vec2:new(v1.x*c,v1.y*c)
+			end,
+			__sub=function(v1,v2)
+				return vec2:new(v1.x-v2.x,v1.y-v2.y)
+			end,
+			__add=function(v1,v2)
+				return vec2:new(v1.x+v2.x,v1.y+v2.y)
 			end
 		}
 		return setmetatable(obj, mtbl)
@@ -218,12 +226,40 @@ vec2={
 	
 	dot=function(_ENV, v2)
 		return x*v2.x+y*v2.y
+	end,
+	
+	floored=function(self)
+		return vec2:new(flr(self.x),flr(self.y))
 	end
 }
 
 function add_acc(v,a)
 	v.x+=a.x
 	v.y+=a.y
+end
+
+function add_line(p1,p2,per)
+	local fp1=p1:floored()
+	local fp2=p2:floored()
+	local m=(fp2.y-fp1.y)/(fp2.x-fp1.x)
+	
+	local x=fp1.x
+	local d = flr((fp2.x-fp1.x)/abs(fp1.x-fp2.x))
+	
+	while x!=fp2.x do
+	
+		if per[x]==nil then
+			per[x]=setmetatable({},{
+			__index=function()
+				return false
+			end
+			})
+		end
+		--pset(x,flr(m*(x-fp1.x)+fp1.y),7)
+		per[x][flr(m*(x-fp1.x)+fp1.y)]=true
+	
+		x+=d
+	end
 end
 -->8
 --comp vars
@@ -407,21 +443,63 @@ function spr_r(i, j, x, y, w, h, pivot_x, pivot_y, angle, transparent_color)
 end
 -->8
 --flash
-
 function blackout(on)
+	
+	local flpos=pl.pos:floored()
 	local pts = {}
-	local plx=flr(pl.pos.x)
-	local ply=flr(pl.pos.y)
-	local t = flash(plx, ply, pl.dir:ang(), 50, 3, pts)
 	
+	local r=0.1 -- width of flash
+	local p=12 -- partitions
+	local pld = pl.dir:ang()
 	
+	--get pts
+	local t = flash(flpos.x, flpos.y,pld , 50, 3, r, p, pts)
+	
+	--set perimeter
+	local per = {}
+	
+	local prev = flpos
+	for pt in all(pts) do
+		add_line(prev,pt,per)
+		prev=pt
+	end
+	add_line(prev,flpos,per)
+--	for x in pairs(per) do
+--		for y in pairs(per) do
+--			if per[x][y] then
+--				--pset(x,y,11)
+--			end
+--		end
+--	end
+
+	
+	--fill with polygon edge pass aglorythm
+	for x=t.minx,t.maxx do
+	local st=false
+	local prev=false
+		for y=t.miny,t.maxy do
+			if prev!= (per[x]!=nil and per[x][y]) then
+				st = not st
+			end
+			
+			if not st then
+				pset(x,y,0)
+			end
+		end
+	end
+	
+	--fill remaining screen
+	local tplf = flpos+vec2:new(-64,-64)
+	local btrt = flpos+vec2:new(64,64)
+	rectfill(tplf.x,tplf.y,btrt.x,t.miny)
+	rectfill(tplf.x,tplf.y,t.minx,btrt.y)
+	rectfill(btrt.x,btrt.y,tplf.x,t.maxy)
+	rectfill(btrt.x,btrt.y,t.maxx,tplf.y)
 end
 
 calls = 0
-function flash(sx,sy,a,l,pen,pts)
+function flash(sx,sy,a,l,pen,r,p,pts)
 	calls = 0
-	local r = 0.07 --cone angle width
-	local p = 10--partitions
 	local i = -p/2
 	
 	local casts = 0
@@ -445,10 +523,10 @@ function flash(sx,sy,a,l,pen,pts)
 		i+=1
 	end
 	
-	for pt in all(pts) do
-		pset(pt.x,pt.y,11)
-	end
-	return targs
+--	for pt in all(pts) do
+--		pset(pt.x,pt.y,11)
+--	end
+	return t
 end
 
 --startx, starty,start dist, angle 0-1, length
