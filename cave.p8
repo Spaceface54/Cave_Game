@@ -28,6 +28,7 @@ silt_sz_up = 3
 
 function _init()
 	pl.init(pl)
+	mon:init()
 	pl.pos.x = 20
 	test = vec2:new(2,2)
 	
@@ -63,8 +64,11 @@ pl=setmetatable({
 		fric=-0.02
 		dir=vec2:new(1,0)
 		turn_sp=0.1
-		bump_sp=0.7
+		bump_sp=0.4
 		bump_lcout=0.1--secs
+		drift_pow = 0.03
+		drift_sp = 2 --secs
+		curr_drift = 0
 		ui_st=false
 		oxy=100--secs
 		oxy_max=100
@@ -101,6 +105,7 @@ pl=setmetatable({
 			end
 		end
 		
+		
 		--friction
 		local n = vel:norm()
 	 if n.x==0 and n.y==0 then
@@ -109,6 +114,10 @@ pl=setmetatable({
 	 else
 	 	add_acc(vel,n*fric)
 	 end
+		
+--		--drift
+--		vel.x+=sin(curr_drift)*drift_pow
+--		curr_drift+=(0.034)/drift_sp
 		
 		--limit vel
 		if vel:mag()>max_vel then
@@ -188,14 +197,35 @@ end
 function add_line(p1,p2,per)
 	local fp1=p1:floored()
 	local fp2=p2:floored()
+	
+	--if abs(fp2.x-fp1.x)>=abs(fp2.y-fp1.y) then
+		low_line(fp1,fp2,per)
+	--else
+		--high_line(fp1,fp2,per)
+	--end
+end
+
+function low_line(fp1,fp2,per)
 	local m=(fp2.y-fp1.y)/(fp2.x-fp1.x)
 	
 	local x=fp1.x
-	local d = flr((fp2.x-fp1.x)/abs(fp1.x-fp2.x))
+	local d = sgn(fp2.x-fp1.x)
 	
 	while x!=fp2.x do
-		add_pt(x,flr(m*(x-fp1.x)+fp1.y),per)
+		add_pt(flr(x),flr(m*(x-fp1.x)+fp1.y),per)
 		x+=d
+	end
+end
+
+function high_line(fp1,fp2,per)
+	local m=(fp2.x-fp1.x)/(fp2.y-fp1.y)
+	
+	local y=fp1.y
+	local d = sgn(fp2.y-fp1.y)
+	
+	while y!=fp2.y do
+		add_pt(flr(m*(y-fp1.y)+fp1.x),flr(y),per)
+		y+=d
 	end
 end
 
@@ -213,15 +243,113 @@ end
 
 function ref(d,n)
 	local nm = n:mag()
-	return d-n*((d:dot(n)*2)/(nm*nm))
+	poss_ref=d-n*((d:dot(n)*2)/(nm*nm))
+	if abs(poss_ref:ang()-d:ang())<0.2 then
+		return n*d:mag()
+	end
+	return poss_ref
 end
 -->8
---comp vars
---title screen (assume black)
-ti="1256-8x14-115-8x22-108-8x28-103-8x32-99-8x36-95-8x40-91-8x44-88-8x46-86-8x48-83-8x52-80-8x54-78-8x56-76-8x58-74-8x60-73-8x60-72-8x62-70-8x64-68-8x66-67-8x66-66-8x68-65-8x68-64-8x70-63-8x70-62-8x72-61-8x72-60-8x74-59-8x74-59-8x74-58-8x76-57-8x76-57-8x76-57-8x76-56-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-56-8x76-57-8x76-57-8x76-57-8x76-58-8x74-59-8x74-59-8x74-60-8x31-2x10-8x31-61-8x29-2x14-8x29-62-8x26-2x5-1x8-2x5-8x26-63-8x24-2x5-1x12-2x5-8x24-64-8x21-2x5-1x16-2x5-8x21-65-8x20-2x4-1x20-2x4-8x20-66-8x18-2x4-1x22-2x4-8x18-67-8x18-2x3-1x10-4-1x10-2x3-8x18-68-8x17-2x2-1x10-6-1x10-2x2-8x17-70-8x15-2x3-1x2-3-1x5-6-1x5-3-1x2-2x3-8x15-72-8x14-2x3-1x1-5-1x3-8-1x3-5-1x1-2x3-8x14-73-8x14-2x3-1x1-5-1x3-8-1x3-5-1x1-2x3-8x14-74-8x10-2x6-1x1-5-1x3-8-1x3-5-1x1-2x6-8x10-76-8x7-2x8-1x2-3-1x4-5-1x2-1-1x4-3-1x2-2x8-8x7-78-8x5-2x4-1x3-2x3-1x8-8-1x8-2x3-1x3-2x4-8x5-80-8x4-2x3-1x7-2x2-1x6-8-1x6-2x2-1x7-2x3-8x4-83-8x2-2x2-1x10-2x2-1x4-8-1x4-2x2-1x10-2x2-8x2-86-8x1-2x2-1x16-8-1x16-2x2-8x1-44-2x46-1x40-2x47-44-2x1-1x42-2x1-8x10-71-8x7-1-2x1-1x42-2x1-8x6-77-8x6-1-1x42-1-8x2-86-8x1-3-1x38-3-8x1-86-8x2-5-1x34-5-8x2-85-8x2-10-1x24-84-8x4-28-1x10-57-1x5-42-8x2-44-8x2-83-8x4-44-8x4-50-1x9-2-1x4-15-8x5-44-8x5-2-1x16-57-8x9-121-8x12-121-8x6-59-8x4-69-1x7-44-8x1-132-8x1-132-8x8-59-8x3-11-8x8-46-8x8-2-1x3-49-8x9-7-8x9-44-8x10-53-8x8-15-8x3-44-8x13-73-8x4-42-8x7-73-1x6-8x7-38-8x19-4-8x3-11-1x8-7-1x5-25-8x5-5-8x6-32-8x2-4-8x14-58-8x20-35-8x18-59-8x24-32-8x15-65-8x22-30-8x14-73-8x16-30-8x9-12-8x6-50-8x15-4-8x7-50-8x8-56-8x20-51-8x3-59-8x21-26-8x10-15-1x3-1-1x14-24-1x7-12-8x23-22-8x23-67-8x23-18-8x26-72-8x19-14-8x32-78-8x11-10-8x37-89-8x10-20-8x16-39-8x7-38-8x7-12-8x21-69-8x9-7-8x3-110-8x59-21-1x4-46-8x70-60-8x28-6-8x14-9-8x18-54-8x33-3-8x16-14-8x8-58-8x19-8-8x22-35-8x8-19-1x6-27-8x6-8-8x16-41-8x6-10-1x10-32-8x70-16-8x2-45-8x74-53-8x4-10-8x71-66-8x70-1x2-78-8x50-38-1x10-41-8x22-3-8x22-51-8x12-20-8x15-7-8x20-59-8x68-67-8x53-85-8x66-74-8x37-101-8x35"
+--monster
+mon=setmetatable({
+	init=function(_ENV)
+		pos=vec2:new(0,0)
+		vel=vec2:new(0,0)
+		dir=vec2:new(0,1)
+		i=9
+		j=4
+		sp=1
+		turn_sp=0.1
+		st=0 --0 is passive, 1 is agressive
+		pt_dist=60
+		targ_pt=vec2:new(pos.x,pos.y)
+		l=4
+		aggro_time=3--secs
+		curr_aggro=0
+		dmg=30
+		segs={}
+		local last = pos
+		for s=1,l do
+			segs[s]=new_seg(vec2:new(pos.x,pos.y),last,7,4)
+			last=segs[s].pos
+		end
+		segs[l+1]=new_seg(vec2:new(pos.x,pos.y),last,5,4)
+	end,
+	move=function(_ENV)
+		if curr_aggro >0 then
+			st=1
+			curr_aggro-=0.034
+		else
+			targ_pt=(pl.pos+vec2:new(rnd(2*pt_dist)-pt_dist,rnd(2*pt_dist)-pt_dist))
+			st=0
+		end
+		
+		local targ
+		if st==0 then
+			if (pos-targ_pt):mag()<10 then
+				targ_pt=(pl.pos+vec2:new(rnd(2*pt_dist)-pt_dist,rnd(2*pt_dist)-pt_dist))
+			end
+		
+			targ =  (targ_pt-pos):norm()
+		end
+		if st==1 then
+			targ =  (pl.pos-pos):norm()
+			
+		end
+		add_acc(dir,(targ-dir)*turn_sp)
+			dir=dir:norm()
+			add_acc(pos,dir*sp)
+		
+		local frst = true
+		for s in all(segs) do
+			if frst then
+				s:move(15)
+				frst=false
+			else
+				s:move(10)
+			end
+		end
 
---ui assume blank
+	end,
+	draw=function(_ENV,src)
+		spr_r(i,j,flr(pos.x),flr(pos.y),2,2,8,8,dir:ang(),0)
+		pset(targ_pt.x,targ_pt.y,11)
+		if src then
+			for s in all(segs) do
+				s:draw(false)
+			end
+		end
+	end,
+	
+	bite=function(_ENV)
+		pl.oxy-=dmg
+		curr_aggro=0
+		targ_pt=(pl.pos-(dir*60))
+	end
+},{__index=_ENV})
 
+
+
+function new_seg(position,front,si,sj)
+	local mon_seg=setmetatable({
+		init = function(_ENV,position,front,si,sj)
+			pos=position
+			f=front
+			dir=front-position
+			i=si
+			j=sj
+		end,
+		move=function(_ENV,dist)
+			if dir:mag()>=dist then
+				add_acc(pos,dir:norm()*sp)
+			end
+				dir=f-pos
+		end,
+	},{__index=mon})
+	
+	mon_seg:init(position,front,si,sj)
+	return mon_seg
+end
 -->8
 --helper functions
 function drop_node(v)
@@ -450,7 +578,7 @@ function blackout(on)
 	local pld = pl.dir:ang()
 	
 	--get pts
-	local t = flash(flpos.x, flpos.y,pld , 55, 4, r, p, pts)
+	local t = flash(flpos.x, flpos.y,pld , 55, 1 , r, p, pts, check_mon)
 	
 	--set perimeter
 	local per = {}
@@ -473,6 +601,24 @@ function blackout(on)
 
 	
 	--fill with polygon edge pass aglorythm
+--	for x=t.minx,t.maxx do
+--	local st=false
+--	local prev=false
+--		for y=t.miny,t.maxy do
+--			local on = (per[x]!=nil and per[x][y])
+--			if on and prev!=on then
+--				st=not st
+--			end
+--			
+--			if not st then
+--				pset(x,y,0)
+--			end
+--			if on then
+--				pset(x,y,0)
+--			end
+--			prev=on
+--		end
+--	end
 	for x=t.minx,t.maxx do
 	local st=false
 	local prev=false
@@ -486,6 +632,7 @@ function blackout(on)
 			end
 		end
 	end
+	
 	
 	--fill remaining screen
 	local tplf = flpos+vec2:new(-64+off,-64+off)
@@ -510,8 +657,10 @@ function flash(sx,sy,a,l,pen,r,p,pts)
 		miny=sy,
 		maxy=sy
 	}
+	
 	while i<(p/2)-1 do
 		local pt=raycast(sx,sy,sd,a+r*i/(p/2),l,pen,pts)
+		
 		add(pts,pt)
 		if pt.x<t.minx then t.minx=pt.x end
 		if pt.x>t.maxx then t.maxx=pt.x end
@@ -529,8 +678,8 @@ function flash(sx,sy,a,l,pen,r,p,pts)
 end
 
 --startx, starty,start dist, angle 0-1, length
-function raycast(sx,sy,sd,a,l,pen,pts,forc)
-	local d = 1 --change in length
+function raycast(sx,sy,sd,a,l,pen,pts)
+	local d = 3 --change in length
 	local c = d+flr(sd) -- curr length
 	local c_pen = pen
 	
@@ -538,6 +687,7 @@ function raycast(sx,sy,sd,a,l,pen,pts,forc)
 	while c < l do
 		cx = flr(sx+cos(a)*c)
 		cy = flr(sy+sin(a)*c)
+		
 		
 		if map_coll(cx,cy)[1] then
 			calls+=1
@@ -555,6 +705,7 @@ end
 
 -->8
 --title draw & update
+ti="1256-8x14-115-8x22-108-8x28-103-8x32-99-8x36-95-8x40-91-8x44-88-8x46-86-8x48-83-8x52-80-8x54-78-8x56-76-8x58-74-8x60-73-8x60-72-8x62-70-8x64-68-8x66-67-8x66-66-8x68-65-8x68-64-8x70-63-8x70-62-8x72-61-8x72-60-8x74-59-8x74-59-8x74-58-8x76-57-8x76-57-8x76-57-8x76-56-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-55-8x78-56-8x76-57-8x76-57-8x76-57-8x76-58-8x74-59-8x74-59-8x74-60-8x31-2x10-8x31-61-8x29-2x14-8x29-62-8x26-2x5-1x8-2x5-8x26-63-8x24-2x5-1x12-2x5-8x24-64-8x21-2x5-1x16-2x5-8x21-65-8x20-2x4-1x20-2x4-8x20-66-8x18-2x4-1x22-2x4-8x18-67-8x18-2x3-1x10-4-1x10-2x3-8x18-68-8x17-2x2-1x10-6-1x10-2x2-8x17-70-8x15-2x3-1x2-3-1x5-6-1x5-3-1x2-2x3-8x15-72-8x14-2x3-1x1-5-1x3-8-1x3-5-1x1-2x3-8x14-73-8x14-2x3-1x1-5-1x3-8-1x3-5-1x1-2x3-8x14-74-8x10-2x6-1x1-5-1x3-8-1x3-5-1x1-2x6-8x10-76-8x7-2x8-1x2-3-1x4-5-1x2-1-1x4-3-1x2-2x8-8x7-78-8x5-2x4-1x3-2x3-1x8-8-1x8-2x3-1x3-2x4-8x5-80-8x4-2x3-1x7-2x2-1x6-8-1x6-2x2-1x7-2x3-8x4-83-8x2-2x2-1x10-2x2-1x4-8-1x4-2x2-1x10-2x2-8x2-86-8x1-2x2-1x16-8-1x16-2x2-8x1-44-2x46-1x40-2x47-44-2x1-1x42-2x1-8x10-71-8x7-1-2x1-1x42-2x1-8x6-77-8x6-1-1x42-1-8x2-86-8x1-3-1x38-3-8x1-86-8x2-5-1x34-5-8x2-85-8x2-10-1x24-84-8x4-28-1x10-57-1x5-42-8x2-44-8x2-83-8x4-44-8x4-50-1x9-2-1x4-15-8x5-44-8x5-2-1x16-57-8x9-121-8x12-121-8x6-59-8x4-69-1x7-44-8x1-132-8x1-132-8x8-59-8x3-11-8x8-46-8x8-2-1x3-49-8x9-7-8x9-44-8x10-53-8x8-15-8x3-44-8x13-73-8x4-42-8x7-73-1x6-8x7-38-8x19-4-8x3-11-1x8-7-1x5-25-8x5-5-8x6-32-8x2-4-8x14-58-8x20-35-8x18-59-8x24-32-8x15-65-8x22-30-8x14-73-8x16-30-8x9-12-8x6-50-8x15-4-8x7-50-8x8-56-8x20-51-8x3-59-8x21-26-8x10-15-1x3-1-1x14-24-1x7-12-8x23-22-8x23-67-8x23-18-8x26-72-8x19-14-8x32-78-8x11-10-8x37-89-8x10-20-8x16-39-8x7-38-8x7-12-8x21-69-8x9-7-8x3-110-8x59-21-1x4-46-8x70-60-8x28-6-8x14-9-8x18-54-8x33-3-8x16-14-8x8-58-8x19-8-8x22-35-8x8-19-1x6-27-8x6-8-8x16-41-8x6-10-1x10-32-8x70-16-8x2-45-8x74-53-8x4-10-8x71-66-8x70-1x2-78-8x50-38-1x10-41-8x22-3-8x22-51-8x12-20-8x15-7-8x20-59-8x68-67-8x53-85-8x66-74-8x37-101-8x35"
 
 function draw_title() 
 	cls()
@@ -571,6 +722,7 @@ end
 -->8
 --gameplay draw & update
 
+check_count = 0
 function draw_game()
 	cls(0)
 	
@@ -578,6 +730,7 @@ function draw_game()
 ----	map(0,0,-64,-64)
 	map()
 	pl:draw()
+	mon:draw(true)
 	--print(pl.pos.x..", "..pl.pos.y,pl.pos.x,pl.pos.y,10)
 	--spr_r(0,4,pl.x,pl.y,2,2,false,false,8,8,0.1,0)
 	-- collision shape debugging--
@@ -590,7 +743,7 @@ function draw_game()
 --	end
 	-- raycast debug
 	blackout(true)
-	
+	check_count+=1
 	
 	--draw nodes--
 	foreach(nodes, node.draw)
@@ -617,7 +770,8 @@ function update_game()
 	local last_x=pl.pos.x
 	local last_y=pl.pos.y
 	pl:move(curr_lcout>0)
-	
+	mon:move()
+
 	if curr_lcout>0 then curr_lcout-=0.034 end
 	
 	
@@ -626,6 +780,7 @@ function update_game()
 		if curr_lcout<=0 then
 			pl.vel = ref(pl.vel,c[2]):norm()*pl.bump_sp
 			curr_lcout = pl.bump_lcout
+			mon.curr_aggro = mon.aggro_time
 		end
 		--start_silt_time()
 	end
@@ -730,7 +885,7 @@ __gfx__
 0000000000000000000000000000000000000000880008000008000000000008000000080088eeeeee8000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000008000000000000000000000000000000000008888880000000000000000000000000000000000000000000000
 __gff__
-00070505050b0000000000000000000000210101010900000007050b00000000002100010009000000210109010101000013111111230000001311230101010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00070505050b0000000000000000000000210101010900000007050b00000000002100010009000000210509050101000013111111230000001311230501010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 2315000000371123132323233333321323231423233332342314232323132333331223142314231312332323132313232333232323231223232323233334323313232323122323132323231223232323333233343313232313232323132323122323231323232323333314232313232323122323232323232313232333332323
